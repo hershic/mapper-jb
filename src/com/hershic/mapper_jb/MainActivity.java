@@ -39,7 +39,10 @@ import com.google.android.gms.maps.model.LatLng;
 
 class RequestTask extends AsyncTask<String, String, String> {
 
+	private MainActivity main_activity;
 	private Context context;
+	private String lat;
+	private String lon;
 
 	public void setContext(Context ctx) {
 		context = ctx;
@@ -70,22 +73,10 @@ class RequestTask extends AsyncTask<String, String, String> {
 		return responseString;
 	}
 
-	public HashMap<String, String> jsonToMap(String t) throws JSONException {
-
-		HashMap<String, String> map = new HashMap<String, String>();
-		JSONObject jObject = new JSONObject(t);
-		Iterator<?> keys = jObject.keys();
-
-		while (keys.hasNext()) {
-			String key = (String) keys.next();
-			String value = jObject.getString(key);
-			map.put(key, value);
-			Log.v("FOUND_KEY", "key: " + key + " value: " + value + "\n");
-		}
-
-		return (map);
+	public void doSomethingToAct(MainActivity act) {
+		main_activity = act;	
 	}
-
+	
 	@Override
 	protected void onPostExecute(String result) {
 		super.onPostExecute(result);
@@ -105,26 +96,24 @@ class RequestTask extends AsyncTask<String, String, String> {
 		// if our pattern matches the string, we can try to extract our groups
 		if (m.find()) {
 			// get the two groups we were looking for
-			group1 = m.group(1);
-			group2 = m.group(2);
+			lat = m.group(1);
+			lon = m.group(2);
 
 			// print the groups, with a wee bit of formatting
-			System.out.format("'%s', '%s'\n", group1, group2);
-			printresults = group1 + " " + group2;
+			main_activity.setLatLong(lat, lon);
 		}
-		Toast.makeText(context, printresults, Toast.LENGTH_LONG).show();
-		MainActivity.setLatLong(group1, group2);
+		Toast.makeText(context, lat+"\n"+lon, Toast.LENGTH_LONG).show();
 	}
 }
 
 public class MainActivity extends Activity {
 
 	final Context context = this;
-	static String lat;
-	static String lon;
-	static FragmentManager fragmgr;
+	String lat;
+	String lon;
+	final MainActivity main_activity = this;
 	
-	public static void moveMapToLocation(String lat, String lon) {
+	public void moveMapToLocation(String lat, String lon) {
 		LatLng latlng = new LatLng(Double.parseDouble(lat),
 				Double.parseDouble(lon));
 		// Construct a CameraPosition focusing on Mountain View and animate the
@@ -135,17 +124,13 @@ public class MainActivity extends Activity {
 				.bearing(0) // Sets the orientation of the camera to North
 				.tilt(30) // Sets the tilt of the camera to 30 degrees
 				.build(); // Creates a CameraPosition from the builder
-		((MapFragment)fragmgr.findFragmentById(R.id.map)).getMap().animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+		((MapFragment)getFragmentManager().findFragmentById(R.id.map)).getMap().animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 	}
 	
-	public static void setLatLong(String la, String lo) {
+	public void setLatLong(String la, String lo) {
 		lat = la;
 		lon = lo;
 		moveMapToLocation(lat,lon);
-	}
-	
-	public static void setFragmentManager(FragmentManager fm) {
-		fragmgr = fm;
 	}
 	
 	@Override
@@ -198,6 +183,7 @@ public class MainActivity extends Activity {
 									task.execute("https://maps.googleapis.com/maps/api/geocode/json?address="
 											+ input_escaped
 											+ "&key=AIzaSyABIsx_rPFKIqctKcGXZ7-0lWWKQQNNS8w");
+									task.doSomethingToAct(main_activity);
 								}
 							})
 					.setNegativeButton("Cancel",
